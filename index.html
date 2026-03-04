@@ -323,7 +323,7 @@ async function sendMessage(){
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`,'HTTP-Referer':'https://aria-agent.netlify.app','X-Title':'ARIA Outreach Agent'},
       body:JSON.stringify({
-        model:'meta-llama/llama-3.3-8b-instruct:free',
+        model:'meta-llama/llama-3.1-8b-instruct:free',
         messages:[{role:'system',content:SYSTEM},...history]
       })
     });
