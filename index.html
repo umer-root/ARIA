@@ -128,9 +128,9 @@
   <div class="modal">
     <div class="modal-icon">⚡</div>
     <h2>Connect ARIA</h2>
-    <p>Enter your free Google Gemini API key to start.<br>Get one free at <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com</a> → Get API key (no credit card needed).<br><br>Your key is stored only in this browser session.</p>
+    <p>Enter your free OpenRouter API key to start.<br>Get one free at <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a> → Create key (no credit card needed).<br><br>Your key is stored only in this browser session.</p>
     <div class="modal-error" id="modal-error">⚠️ Key must start with "AIza" — check and try again.</div>
-    <input class="modal-input" id="api-key-input" type="password" placeholder="AIzaSy..." />
+    <input class="modal-input" id="api-key-input" type="password" placeholder="sk-or-v1-..." />
     <button class="modal-btn" onclick="saveApiKey()">Launch ARIA →</button>
     <div class="modal-note">🔒 Never stored on any server</div>
   </div>
@@ -241,7 +241,7 @@ document.getElementById('api-key-input').addEventListener('keydown',e=>{if(e.key
 function saveApiKey(){
   const v=document.getElementById('api-key-input').value.trim();
   const err=document.getElementById('modal-error');
-  if(!v.startsWith('AIza')){err.style.display='block';return;}
+  if(!v.startsWith('sk-or')){err.style.display='block';return;}
   err.style.display='none';
   apiKey=v; sessionStorage.setItem('aria_key',apiKey);
   document.getElementById('modal').style.display='none';
@@ -319,28 +319,23 @@ async function sendMessage(){
   showTyping();
   history.push({role:'user',content:prefix+message});
   try{
-    // Build Gemini contents array from history
-    const contents = history.map(m=>({
-      role: m.role==='assistant'?'model':'user',
-      parts:[{text: m.content}]
-    }));
-    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,{
+    const res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`,'HTTP-Referer':'https://aria-agent.netlify.app','X-Title':'ARIA Outreach Agent'},
       body:JSON.stringify({
-        system_instruction:{parts:[{text:SYSTEM}]},
-        contents:contents
+        model:'meta-llama/llama-3.3-8b-instruct:free',
+        messages:[{role:'system',content:SYSTEM},...history]
       })
     });
     const data=await res.json();
     hideTyping();
     if(data.error){
-      const msg=data.error.code===400||data.error.code===403?'🔑 Invalid API key. Click **API KEY** in the top right to update it.':`⚠️ API Error: ${data.error.message}`;
+      const msg=data.error.code===401?'🔑 Invalid API key. Click **API KEY** in the top right to update it.':`⚠️ API Error: ${data.error.message}`;
       addMessage('ai',msg);history.pop();
     }else{
-      const reply=data.candidates[0].content.parts[0].text;
+      const reply=data.choices[0].message.content;
       history.push({role:'assistant',content:reply});
-      const tokens=(data.usageMetadata?.totalTokenCount)||0;
+      const tokens=(data.usage?.total_tokens)||0;
       addMessage('ai',reply,tokens);
       totalTokens+=tokens;
       document.getElementById('token-count').textContent=totalTokens.toLocaleString();
