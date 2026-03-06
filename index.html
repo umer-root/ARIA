@@ -206,7 +206,7 @@ var taskLabels = {general:'💬 General Chat',cold_email:'📧 Cold Email',seque
 var taskPrefixes = {cold_email:'Write a cold email: ',sequence:'Create a full outreach sequence with Day 1, Day 3, Day 7 emails: ',subject_lines:'Generate 5 subject line variants with open-rate tips for: ',analyze:'Analyze and improve this email with specific suggestions: ',research:'Research this prospect and suggest personalization angles: ',extract:'Extract all lead data and return as clean JSON: '};
 
 var currentTask = 'general';
-var history = [];
+var chatHistory = [];
 var msgCount = 0;
 var isLoading = false;
 var apiKey = sessionStorage.getItem('groq_key') || '';
@@ -335,9 +335,9 @@ async function sendMessage() {
   var fullMsg = prefix + message;
   addMessage('user', message);
   showTyping();
-  history.push({role: 'user', content: fullMsg});
+  chatHistory.push({role: 'user', content: fullMsg});
   try {
-    var messages = [{role: 'system', content: SYSTEM}].concat(history);
+    var messages = [{role: 'system', content: SYSTEM}].concat(chatHistory);
     var resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -356,17 +356,17 @@ async function sendMessage() {
       var errMsg = data.error.message || 'Unknown error';
       if (resp.status === 401) errMsg = 'Invalid API key. Click API KEY button to update.';
       addMessage('ai', 'Error: ' + errMsg);
-      history.pop();
+      chatHistory.pop();
     } else {
       var reply = data.choices[0].message.content;
-      history.push({role: 'assistant', content: reply});
+      chatHistory.push({role: 'assistant', content: reply});
       addMessage('ai', reply);
-      if (history.length > 20) history = history.slice(-20);
+      if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
     }
   } catch(err) {
     hideTyping();
     addMessage('ai', 'Network error: ' + err.message + '. Check your internet and try again.');
-    history.pop();
+    chatHistory.pop();
   }
   isLoading = false;
   document.getElementById('send-btn').disabled = false;
@@ -380,7 +380,7 @@ function quickAction(task, message) {
 }
 
 function clearChat() {
-  history = [];
+  chatHistory = [];
   msgCount = 0;
   document.getElementById('msg-count').textContent = '0';
   document.getElementById('messages').innerHTML = '<div class="welcome" id="welcome"><div class="welcome-icon">⚡</div><h2>Session Cleared</h2><p>Ready for a new campaign. Select a task or type below.</p></div>';
